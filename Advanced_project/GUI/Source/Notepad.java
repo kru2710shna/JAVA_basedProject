@@ -86,6 +86,25 @@ class SyntaxHighlightingPlugin implements Plugin {
 
 }
 
+// Define the User class
+class User {
+    private String name;
+    private String id;
+
+    public User(String name, String id) {
+        this.name = name;
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getId() {
+        return id;
+    }
+}
+
 class Notepad extends JFrame implements ActionListener {
     private JTextPane textPane;
     private JLabel wordCountLabel;
@@ -93,10 +112,15 @@ class Notepad extends JFrame implements ActionListener {
     private String currentTag;
     private Map<String, String> filesWithTags; // Map to store files with their tags
     private SyntaxHighlightingPlugin syntaxHighlightingPlugin; // Instance of SyntaxHighlightingPlugin
+    private JLabel userInfoLabel; // Label to display user information
+    private User currentUser;
 
     public Notepad() {
-        super("Notepad");
+         super("Notepad");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setupUI();
+        authenticateUser(); // Authenticate and set the user
+        updateUserInfoDisplay(); // Update GUI with user info
 
         textPane = new JTextPane();
         textPane.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -209,6 +233,64 @@ class Notepad extends JFrame implements ActionListener {
 
         setSize(500, 500);
         setVisible(true);
+    }
+
+     private void authenticateUser() {
+        // Create input fields for name and ID
+        JTextField nameField = new JTextField(10);
+        JTextField idField = new JTextField(10);
+
+        // Panel to hold input fields
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(2, 2));
+        panel.add(new JLabel("Name:"));
+        panel.add(nameField);
+        panel.add(new JLabel("ID:"));
+        panel.add(idField);
+
+        // Prompt the user to enter name and ID
+        int result = JOptionPane.showConfirmDialog(null, panel, "User Authentication", JOptionPane.OK_CANCEL_OPTION);
+        if (result == JOptionPane.OK_OPTION) {
+            // Retrieve name and ID from input fields
+            String name = nameField.getText();
+            String id = idField.getText();
+            currentUser = new User(name, id);
+        } else {
+            // Default user if canceled
+            currentUser = new User("Guest", "0000");
+        }
+    }
+    private void setupUI() {
+        textPane = new JTextPane();
+        textPane.setFont(new Font("Arial", Font.PLAIN, 12));
+        textPane.setMargin(new Insets(20, 20, 20, 20)); // Add margin for header and footer
+
+        JScrollPane scrollPane = new JScrollPane(textPane);
+
+        // Create word count label
+        wordCountLabel = new JLabel("Word Count: 0");
+        letterCountLabel = new JLabel("Letter Count: 0");
+
+        // Create panel to hold both labels
+        JPanel countPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        countPanel.add(wordCountLabel);
+        countPanel.add(letterCountLabel);
+
+        // Add user info label
+        userInfoLabel = new JLabel();
+        JPanel userInfoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        userInfoPanel.add(userInfoLabel);
+
+        // Add components to content pane
+        getContentPane().add(scrollPane, BorderLayout.CENTER);
+        getContentPane().add(countPanel, BorderLayout.SOUTH); // Add countPanel to the bottom
+        getContentPane().add(userInfoPanel, BorderLayout.NORTH); // Add userInfoPanel to the top
+    }
+    
+    private void updateUserInfoDisplay() {
+        if (currentUser != null) {
+            userInfoLabel.setText("User: " + currentUser.getName() + " (ID: " + currentUser.getId() + ")");
+        }
     }
 
     public void actionPerformed(ActionEvent e) {
