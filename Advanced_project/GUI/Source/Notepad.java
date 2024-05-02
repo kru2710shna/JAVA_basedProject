@@ -23,41 +23,55 @@ class SyntaxHighlightingPlugin implements Plugin {
         this.textPane = textPane;
     }
 
-    @Override
+   @Override
     public void initialize() {
-        // Initialization logic for syntax highlighting plugin
-        // For demonstration purposes, let's say we want to set the text color to blue for Java keywords
-        
-        // Define a StyleContext
         StyleContext styleContext = new StyleContext();
-        
-        // Create a Style for Java keywords
         Style keywordStyle = styleContext.addStyle("Keyword", null);
-        StyleConstants.setForeground(keywordStyle, Color.BLUE);
-        
-        // Add Java keywords to the keyword Style
-        String[] javaKeywords = { "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while" };
-        StyledDocument doc = textPane.getStyledDocument();
-        for (String keyword : javaKeywords) {
-            doc.addStyle(keyword, keywordStyle);
+        if (keywordStyle == null) {
+            System.err.println("Failed to create keyword style.");
+            return;
         }
+        StyleConstants.setForeground(keywordStyle, Color.BLUE);
+        // Check if color is set
+        System.out.println("Keyword color set to: " + StyleConstants.getForeground(keywordStyle));
     }
+
 
     @Override
     public void execute() {
-        // Syntax highlighting logic (if any)
-        // For demonstration purposes, let's say we want to highlight keywords in the text currently displayed in the JTextPane
         StyledDocument doc = textPane.getStyledDocument();
         String text = textPane.getText();
-        StringTokenizer tokenizer = new StringTokenizer(text);
-        while (tokenizer.hasMoreTokens()) {
-            String word = tokenizer.nextToken();
-            if (isJavaKeyword(word)) {
-                int startIndex = text.indexOf(word);
-                int endIndex = startIndex + word.length();
-                doc.setCharacterAttributes(startIndex, endIndex - startIndex, doc.getStyle("Keyword"), true);
+
+        SwingUtilities.invokeLater(() -> {
+            try {
+                int start = 0;
+                while ((start = text.indexOf('{', start)) != -1) {
+                    int end = text.indexOf('}', start);
+                    if (end == -1) break;
+
+                    // Extract the text between the curly brackets
+                    String content = text.substring(start + 1, end).trim();
+
+                    // Check if the content is a Java keyword and apply the style
+                    if (isJavaKeyword(content)) {
+                        int contentStart = start + 1;
+                        int contentLength = content.length();
+                        Style keywordStyle = textPane.getStyle("Keyword");
+                        if (keywordStyle == null) {
+                            // Create and initialize the style if not present
+                            keywordStyle = textPane.addStyle("Keyword", null);
+                            StyleConstants.setForeground(keywordStyle, Color.BLUE);
+                        }
+                        if (contentStart + contentLength <= doc.getLength()) {
+                            doc.setCharacterAttributes(contentStart, contentLength, keywordStyle, false);
+                        }
+                    }
+                    start = end + 1;
+                }
+            } catch (Exception e) {
+                System.err.println("Error while updating styles: " + e.getMessage());
             }
-        }
+        });
     }
 
     @Override
@@ -65,14 +79,9 @@ class SyntaxHighlightingPlugin implements Plugin {
         // Clean up resources used by the syntax highlighting plugin (if any)
     }
 
-    private boolean isJavaKeyword(String word) {
-        String[] javaKeywords = { "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while" };
-        for (String keyword : javaKeywords) {
-            if (word.equals(keyword)) {
-                return true;
-            }
-        }
-        return false;
+   private boolean isJavaKeyword(String word) {
+        String[] javaKeywords = {"abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while"};
+        return Arrays.asList(javaKeywords).contains(word);
     }
 
 }
@@ -83,6 +92,7 @@ class Notepad extends JFrame implements ActionListener {
     private JLabel letterCountLabel;
     private String currentTag;
     private Map<String, String> filesWithTags; // Map to store files with their tags
+    private SyntaxHighlightingPlugin syntaxHighlightingPlugin; // Instance of SyntaxHighlightingPlugin
 
     public Notepad() {
         super("Notepad");
@@ -172,23 +182,30 @@ class Notepad extends JFrame implements ActionListener {
 
         filesWithTags = new HashMap<>();
 
+        // Instantiate SyntaxHighlightingPlugin and initialize it
+        syntaxHighlightingPlugin = new SyntaxHighlightingPlugin(textPane);
+        syntaxHighlightingPlugin.initialize();
+
         // Add text change listener
         textPane.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                updateCounts();
-            }
+        @Override
+        public void insertUpdate(DocumentEvent e) {
+            updateCounts();
+            syntaxHighlightingPlugin.execute();
+        }
 
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                updateCounts();
-            }
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+            updateCounts();
+            syntaxHighlightingPlugin.execute();
+        }
 
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                updateCounts();
-            }
-        });
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            updateCounts();
+            syntaxHighlightingPlugin.execute();
+        }
+    });
 
         setSize(500, 500);
         setVisible(true);
