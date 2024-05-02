@@ -8,6 +8,75 @@ import java.util.*;
 import java.util.List;
 import java.util.ArrayList;
 
+// Define the Plugin interface
+interface Plugin {
+    void initialize(); // Method to initialize the plugin
+    void execute();    // Method to execute the plugin functionality
+    void cleanup();    // Method to clean up resources used by the plugin
+}
+
+// Example plugin class for syntax highlighting
+class SyntaxHighlightingPlugin implements Plugin {
+    private JTextPane textPane;
+
+    public SyntaxHighlightingPlugin(JTextPane textPane) {
+        this.textPane = textPane;
+    }
+
+    @Override
+    public void initialize() {
+        // Initialization logic for syntax highlighting plugin
+        // For demonstration purposes, let's say we want to set the text color to blue for Java keywords
+        
+        // Define a StyleContext
+        StyleContext styleContext = new StyleContext();
+        
+        // Create a Style for Java keywords
+        Style keywordStyle = styleContext.addStyle("Keyword", null);
+        StyleConstants.setForeground(keywordStyle, Color.BLUE);
+        
+        // Add Java keywords to the keyword Style
+        String[] javaKeywords = { "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while" };
+        StyledDocument doc = textPane.getStyledDocument();
+        for (String keyword : javaKeywords) {
+            doc.addStyle(keyword, keywordStyle);
+        }
+    }
+
+    @Override
+    public void execute() {
+        // Syntax highlighting logic (if any)
+        // For demonstration purposes, let's say we want to highlight keywords in the text currently displayed in the JTextPane
+        StyledDocument doc = textPane.getStyledDocument();
+        String text = textPane.getText();
+        StringTokenizer tokenizer = new StringTokenizer(text);
+        while (tokenizer.hasMoreTokens()) {
+            String word = tokenizer.nextToken();
+            if (isJavaKeyword(word)) {
+                int startIndex = text.indexOf(word);
+                int endIndex = startIndex + word.length();
+                doc.setCharacterAttributes(startIndex, endIndex - startIndex, doc.getStyle("Keyword"), true);
+            }
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        // Clean up resources used by the syntax highlighting plugin (if any)
+    }
+
+    private boolean isJavaKeyword(String word) {
+        String[] javaKeywords = { "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while" };
+        for (String keyword : javaKeywords) {
+            if (word.equals(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+}
+
 class Notepad extends JFrame implements ActionListener {
     private JTextPane textPane;
     private JLabel wordCountLabel;
