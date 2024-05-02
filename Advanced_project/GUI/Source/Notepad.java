@@ -105,6 +105,51 @@ class User {
     }
 }
 
+interface Serializer<T> {
+    String serialize(T object);
+}
+
+interface Deserializer<T> {
+    T deserialize(String serializedData);
+}
+
+class JsonSerializer<T> implements Serializer<T>, Deserializer<T> {
+    private Gson gson; // Gson library for JSON serialization/deserialization
+
+    public JsonSerializer() {
+        this.gson = new Gson();
+    }
+
+    @Override
+    public String serialize(T object) {
+        return gson.toJson(object);
+    }
+
+    @Override
+    public T deserialize(String serializedData) {
+        return gson.fromJson(serializedData, new TypeToken<T>(){}.getType());
+    }
+}
+
+class XmlSerializer<T> implements Serializer<T>, Deserializer<T> {
+    private XStream xStream; // XStream library for XML serialization/deserialization
+
+    public XmlSerializer() {
+        this.xStream = new XStream();
+    }
+
+    @Override
+    public String serialize(T object) {
+        return xStream.toXML(object);
+    }
+
+    @Override
+    public T deserialize(String serializedData) {
+        return (T) xStream.fromXML(serializedData);
+    }
+}
+
+
 class Notepad extends JFrame implements ActionListener {
     private JTextPane textPane;
     private JLabel wordCountLabel;
@@ -114,6 +159,8 @@ class Notepad extends JFrame implements ActionListener {
     private SyntaxHighlightingPlugin syntaxHighlightingPlugin; // Instance of SyntaxHighlightingPlugin
     private JLabel userInfoLabel; // Label to display user information
     private User currentUser;
+    private Serializer<Map<String, String>> serializer;
+    private Deserializer<Map<String, String>> deserializer;
 
     public Notepad() {
          super("Notepad");
@@ -201,9 +248,6 @@ class Notepad extends JFrame implements ActionListener {
         getContentPane().add(scrollPane, BorderLayout.CENTER);
         getContentPane().add(countPanel, BorderLayout.SOUTH); // Add countPanel to the bottom
 
-        // Set initial counts
-        updateCounts();
-
         filesWithTags = new HashMap<>();
 
         // Instantiate SyntaxHighlightingPlugin and initialize it
@@ -286,7 +330,7 @@ class Notepad extends JFrame implements ActionListener {
         getContentPane().add(countPanel, BorderLayout.SOUTH); // Add countPanel to the bottom
         getContentPane().add(userInfoPanel, BorderLayout.NORTH); // Add userInfoPanel to the top
     }
-    
+
     private void updateUserInfoDisplay() {
         if (currentUser != null) {
             userInfoLabel.setText("User: " + currentUser.getName() + " (ID: " + currentUser.getId() + ")");
@@ -338,6 +382,15 @@ class Notepad extends JFrame implements ActionListener {
                 break;
                 
         }
+    }
+    // Method to serialize filesWithTags to JSON
+    private String serializeFilesWithTags() {
+        return serializer.serialize(filesWithTags);
+    }
+    
+    // Method to deserialize JSON data to filesWithTags
+    private void deserializeFilesWithTags(String serializedData) {
+        filesWithTags = deserializer.deserialize(serializedData);
     }
 
     private void boldSelectedText() {
