@@ -15,38 +15,54 @@ interface Plugin {
     void cleanup();    // Method to clean up resources used by the plugin
 }
 
-// Example plugin class for syntax highlighting
+// Plugin class for syntax highlighting
 class SyntaxHighlightingPlugin implements Plugin {
     private JTextPane textPane;
 
+    // Constructs a SyntaxHighlightingPlugin object.
     public SyntaxHighlightingPlugin(JTextPane textPane) {
         this.textPane = textPane;
     }
 
    @Override
     public void initialize() {
+        // Create a new StyleContext
         StyleContext styleContext = new StyleContext();
+
+        // Add a new style named "Keyword" to the StyleContext
         Style keywordStyle = styleContext.addStyle("Keyword", null);
+
+        // Check if the keywordStyle is successfully created
         if (keywordStyle == null) {
+            // Print an error message if the style creation fails
             System.err.println("Failed to create keyword style.");
-            return;
+            return; // Exit the method if style creation fails
         }
+
+        // Set the foreground color of the keywordStyle to blue
         StyleConstants.setForeground(keywordStyle, Color.BLUE);
-        // Check if color is set
+
+        // Print a message to confirm the color set for the keywordStyle
         System.out.println("Keyword color set to: " + StyleConstants.getForeground(keywordStyle));
     }
 
 
-    @Override
+ @Override
     public void execute() {
+        // Get the StyledDocument from the textPane
         StyledDocument doc = textPane.getStyledDocument();
+        // Get the text content from the textPane
         String text = textPane.getText();
 
+        // Execute the content updates in the event dispatch thread
         SwingUtilities.invokeLater(() -> {
             try {
                 int start = 0;
+                // Iterate through the text to find curly brackets and apply styling
                 while ((start = text.indexOf('{', start)) != -1) {
+                    // Find the corresponding closing curly bracket
                     int end = text.indexOf('}', start);
+                    // Break the loop if there's no closing curly bracket
                     if (end == -1) break;
 
                     // Extract the text between the curly brackets
@@ -56,19 +72,23 @@ class SyntaxHighlightingPlugin implements Plugin {
                     if (isJavaKeyword(content)) {
                         int contentStart = start + 1;
                         int contentLength = content.length();
+                        // Get the keyword style from the textPane
                         Style keywordStyle = textPane.getStyle("Keyword");
+                        // Create and initialize the style if not present
                         if (keywordStyle == null) {
-                            // Create and initialize the style if not present
                             keywordStyle = textPane.addStyle("Keyword", null);
                             StyleConstants.setForeground(keywordStyle, Color.BLUE);
                         }
+                        // Apply the keyword style to the content range
                         if (contentStart + contentLength <= doc.getLength()) {
                             doc.setCharacterAttributes(contentStart, contentLength, keywordStyle, false);
                         }
                     }
+                    // Move to the next character after the closing curly bracket
                     start = end + 1;
                 }
             } catch (Exception e) {
+                // Handle any errors that occur during style updates
                 System.err.println("Error while updating styles: " + e.getMessage());
             }
         });
@@ -77,8 +97,10 @@ class SyntaxHighlightingPlugin implements Plugin {
     @Override
     public void cleanup() {
         // Clean up resources used by the syntax highlighting plugin (if any)
+        textPane = null;
     }
 
+    // Checks if the given word is a Java keyword.
    private boolean isJavaKeyword(String word) {
         String[] javaKeywords = {"abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while"};
         return Arrays.asList(javaKeywords).contains(word);
@@ -90,12 +112,14 @@ class SyntaxHighlightingPlugin implements Plugin {
 class User {
     private String name;
     private String id;
+    private String filePriorityType; // New member variable
 
     public User(String name, String id) {
         this.name = name;
         this.id = id;
     }
 
+    // Getter and setter methods
     public String getName() {
         return name;
     }
@@ -103,49 +127,13 @@ class User {
     public String getId() {
         return id;
     }
-}
 
-interface Serializer<T> {
-    String serialize(T object);
-}
-
-interface Deserializer<T> {
-    T deserialize(String serializedData);
-}
-
-class JsonSerializer<T> implements Serializer<T>, Deserializer<T> {
-    private Gson gson; // Gson library for JSON serialization/deserialization
-
-    public JsonSerializer() {
-        this.gson = new Gson();
+    public void setFilePriorityType(String filePriorityType) {
+        this.filePriorityType = filePriorityType;
     }
 
-    @Override
-    public String serialize(T object) {
-        return gson.toJson(object);
-    }
-
-    @Override
-    public T deserialize(String serializedData) {
-        return gson.fromJson(serializedData, new TypeToken<T>(){}.getType());
-    }
-}
-
-class XmlSerializer<T> implements Serializer<T>, Deserializer<T> {
-    private XStream xStream; // XStream library for XML serialization/deserialization
-
-    public XmlSerializer() {
-        this.xStream = new XStream();
-    }
-
-    @Override
-    public String serialize(T object) {
-        return xStream.toXML(object);
-    }
-
-    @Override
-    public T deserialize(String serializedData) {
-        return (T) xStream.fromXML(serializedData);
+    public String getFilePriorityType() {
+        return filePriorityType;
     }
 }
 
@@ -159,8 +147,6 @@ class Notepad extends JFrame implements ActionListener {
     private SyntaxHighlightingPlugin syntaxHighlightingPlugin; // Instance of SyntaxHighlightingPlugin
     private JLabel userInfoLabel; // Label to display user information
     private User currentUser;
-    private Serializer<Map<String, String>> serializer;
-    private Deserializer<Map<String, String>> deserializer;
 
     public Notepad() {
          super("Notepad");
@@ -304,6 +290,16 @@ class Notepad extends JFrame implements ActionListener {
             currentUser = new User("Guest", "0000");
         }
     }
+    private void addTag() {
+        String[] options = {"Low Priority", "Medium Priority", "High Priority"};
+        int choice = JOptionPane.showOptionDialog(this, "Choose a tag type:", "Add Tag", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+        if (choice != JOptionPane.CLOSED_OPTION) {
+            currentTag = options[choice];
+            currentUser.setFilePriorityType(currentTag); // Set the file priority type for the current user
+            updateUserInfoDisplay(); // Update the user info display
+            JOptionPane.showMessageDialog(this, "Tag added successfully: " + currentTag, "Tag Added", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
     private void setupUI() {
         textPane = new JTextPane();
         textPane.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -333,7 +329,11 @@ class Notepad extends JFrame implements ActionListener {
 
     private void updateUserInfoDisplay() {
         if (currentUser != null) {
-            userInfoLabel.setText("User: " + currentUser.getName() + " (ID: " + currentUser.getId() + ")");
+            String userInfo = "User: " + currentUser.getName() + " (ID: " + currentUser.getId() + ")";
+            if (currentUser.getFilePriorityType() != null) {
+                userInfo += " - Priority Type: " + currentUser.getFilePriorityType(); // Append file priority type if available
+            }
+            userInfoLabel.setText(userInfo);
         }
     }
 
@@ -383,138 +383,220 @@ class Notepad extends JFrame implements ActionListener {
                 
         }
     }
-    // Method to serialize filesWithTags to JSON
-    private String serializeFilesWithTags() {
-        return serializer.serialize(filesWithTags);
-    }
-    
-    // Method to deserialize JSON data to filesWithTags
-    private void deserializeFilesWithTags(String serializedData) {
-        filesWithTags = deserializer.deserialize(serializedData);
-    }
 
+    // Makes the selected text bold in the JTextPane.
     private void boldSelectedText() {
+        // Get the styled document of the JTextPane
         StyledDocument doc = textPane.getStyledDocument();
+        
+        // Add a new style for bold (if not already present)
         Style style = textPane.addStyle("Bold", null);
+        
+        // Set the bold attribute to true for the style
         StyleConstants.setBold(style, true);
-        doc.setCharacterAttributes(textPane.getSelectionStart(), textPane.getSelectionEnd() - textPane.getSelectionStart(), doc.getStyle("Bold"), true);
+        
+        // Apply the bold style to the selected text in the document
+        doc.setCharacterAttributes(
+            textPane.getSelectionStart(), // Start position of the selection
+            textPane.getSelectionEnd() - textPane.getSelectionStart(), // Length of the selection
+            doc.getStyle("Bold"), // Style to apply (bold)
+            true // Replace existing attributes
+        );
     }
 
+    // Underlines the selected text in the JTextPane.
     private void underlineSelectedText() {
+        // Get the styled document of the JTextPane
         StyledDocument doc = textPane.getStyledDocument();
+        
+        // Add a new style for underline (if not already present)
         Style style = textPane.addStyle("Underline", null);
+        
+        // Set the underline attribute to true for the style
         StyleConstants.setUnderline(style, true);
-        doc.setCharacterAttributes(textPane.getSelectionStart(), textPane.getSelectionEnd() - textPane.getSelectionStart(), doc.getStyle("Underline"), true);
+        
+        // Apply the underline style to the selected text in the document
+        doc.setCharacterAttributes(
+            textPane.getSelectionStart(), // Start position of the selection
+            textPane.getSelectionEnd() - textPane.getSelectionStart(), // Length of the selection
+            doc.getStyle("Underline"), // Style to apply (underline)
+            true // Replace existing attributes
+        );
     }
 
+    // Italicizes the selected text in the JTextPane.
     private void italicizeSelectedText() {
+        // Get the styled document of the JTextPane
         StyledDocument doc = textPane.getStyledDocument();
+        
+        // Add a new style for italic (if not already present)
         Style style = textPane.addStyle("Italic", null);
+        
+        // Set the italic attribute to true for the style
         StyleConstants.setItalic(style, true);
-        doc.setCharacterAttributes(textPane.getSelectionStart(), textPane.getSelectionEnd() - textPane.getSelectionStart(), doc.getStyle("Italic"), true);
+        
+        // Apply the italic style to the selected text in the document
+        doc.setCharacterAttributes(
+            textPane.getSelectionStart(), // Start position of the selection
+            textPane.getSelectionEnd() - textPane.getSelectionStart(), // Length of the selection
+            doc.getStyle("Italic"), // Style to apply (italic)
+            true // Replace existing attributes
+        );
     }
 
+    // Closes the Notepad window.
     private void closeNotepad() {
-        int choice = JOptionPane.showConfirmDialog(this, "Do you want to create a new notepad?", "Close", JOptionPane.YES_NO_OPTION);
+        // Ask the user if they want to create a new Notepad or exit the program
+        int choice = JOptionPane.showConfirmDialog(
+            this,
+            "Do you want to create a new notepad?",
+            "Close",
+            JOptionPane.YES_NO_OPTION
+        );
+        
+        // If the user chooses to create a new Notepad
         if (choice == JOptionPane.YES_OPTION) {
+            // Dispose the current window
             dispose();
+            // Open a new instance of Notepad
             new Notepad();
         } else {
-            int exitChoice = JOptionPane.showConfirmDialog(this, "Do you want to exit the program?", "Exit", JOptionPane.YES_NO_OPTION);
+            // If the user chooses not to create a new Notepad, ask if they want to exit the program
+            int exitChoice = JOptionPane.showConfirmDialog(
+                this,
+                "Do you want to exit the program?",
+                "Exit",
+                JOptionPane.YES_NO_OPTION
+            );
+            
+            // If the user chooses to exit the program
             if (exitChoice == JOptionPane.YES_OPTION) {
+                // Dispose the current window
                 dispose();
+                // Exit the program
                 System.exit(0);
             }
         }
     }
-
+    // Exits the program.
     private void exitProgram() {
-        int exitChoice = JOptionPane.showConfirmDialog(this, "Do you want to exit the program?", "Exit", JOptionPane.YES_NO_OPTION);
+        // Ask the user if they want to exit the program
+        int exitChoice = JOptionPane.showConfirmDialog(
+            this,"Do you want to exit the program?", "Exit",
+            JOptionPane.YES_NO_OPTION
+        );
+        
+        // If the user chooses to exit the program
         if (exitChoice == JOptionPane.YES_OPTION) {
+            // Dispose the current window
             dispose();
+            // Exit the program
             System.exit(0);
         }
     }
 
+    // Shows a dialog for finding and replacing text in the text area.
     private void showFindReplaceDialog() {
+        // Prompt the user to enter text to find
         String findText = JOptionPane.showInputDialog(this, "Enter text to find:");
+        // Check if user input is not null and not empty
         if (findText != null && !findText.isEmpty()) {
+            // Get the current text from the text area
             String currentText = textPane.getText();
+            // Find the index of the text to find in the current text
             int index = currentText.indexOf(findText);
+            // If the text to find is found
             if (index != -1) {
+                // Prompt the user to enter text to replace with
                 String replaceText = JOptionPane.showInputDialog(this, "Replace '" + findText + "' with:");
+                // If user input for replacement is not null
                 if (replaceText != null) {
+                    // Replace the text in the current text with the replacement text
                     currentText = currentText.replace(findText, replaceText);
+                    // Set the updated text in the text area
                     textPane.setText(currentText);
                 }
             } else {
+                // If the text to find is not found, show a message dialog
                 JOptionPane.showMessageDialog(this, "Word not found.");
             }
         }
     }
-
+    
+    // Updates the word count and letter count labels based on the text in the text area.
     private void updateCounts() {
+        // Get the text from the text area
         String text = textPane.getText();
+        // Count the number of words (split by whitespace) and letters (excluding whitespace)
         int wordCount = text.isEmpty() ? 0 : text.split("\\s+").length;
         int letterCount = text.replaceAll("\\s+", "").length();
+        // Set the word count and letter count in their respective labels
         wordCountLabel.setText("Word Count: " + wordCount);
         letterCountLabel.setText("Letter Count: " + letterCount);
     }
 
-    private void saveFile() {
+    // Saves the content of the text area to a file. 
+   private void saveFile() {
+        // Create a file chooser dialog
         JFileChooser fileChooser = new JFileChooser();
         int option = fileChooser.showSaveDialog(this);
         if (option == JFileChooser.APPROVE_OPTION) {
+            // Get the selected file from the file chooser
             File selectedFile = fileChooser.getSelectedFile();
-            String selectedPriority = currentTag != null ? currentTag.toLowerCase() : ""; // Get selected priority tag
+            // Get the selected priority tag (or an empty string if null)
+            String selectedPriority = currentTag != null ? currentTag.toLowerCase() : "";
+            // Create the directory based on the selected priority tag if it doesn't exist
             File folder = new File("/Users/krushna/Java_Project/Advanced_project/GUI/Priority/" + selectedPriority);
-    
-            // Create the folder if it doesn't exist
             if (!folder.exists()) {
-                if (!folder.mkdirs()) {
+                if (!folder.mkdirs()) { // Attempt to create the directory
                     JOptionPane.showMessageDialog(this, "Error creating folder.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
             }
-    
-            // Construct the file path with priority tag and file name
+            // Construct the file path with the priority tag and file name
             String filePath = folder.getAbsolutePath() + "/" + selectedFile.getName();
             File file = new File(filePath);
             try (FileWriter writer = new FileWriter(file)) {
+                // Write the text area content to the file
                 writer.write(textPane.getText());
+                // Display a success message with the selected priority tag
                 JOptionPane.showMessageDialog(this, "File saved successfully with " + selectedPriority + " priority.");
             } catch (IOException e) {
+                // Display an error message if file writing fails
                 JOptionPane.showMessageDialog(this, "Error saving file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
+    // Creates a new Notepad instance.
     private void createNewNotepad() {
-        
-        int saveChoice = JOptionPane.showConfirmDialog(this, "Do you want to save the changes?", "Save Changes", JOptionPane.YES_NO_CANCEL_OPTION);        
+        // Prompt the user to save changes before creating a new Notepad
+        int saveChoice = JOptionPane.showConfirmDialog(this, "Do you want to save the changes?", "Save Changes", JOptionPane.YES_NO_CANCEL_OPTION);
+        // Display a confirmation dialog for creating a new Notepad
         int newChoice = JOptionPane.showConfirmDialog(this, "Do you want to create a new Notepad?", "New Notepad", JOptionPane.YES_NO_OPTION);
+        // Display a confirmation dialog for exiting the program (if needed)
         int exitChoice = JOptionPane.showConfirmDialog(this, "Do you want to create a new Notepad?", "New Notepad", JOptionPane.YES_NO_OPTION);
         
         if (newChoice == JOptionPane.YES_OPTION) {
             if (saveChoice == JOptionPane.YES_OPTION) {
-                saveFile();
+                saveFile(); // Save changes if requested
                 if (exitChoice == JOptionPane.YES_OPTION) {
-                    exitProgram(); 
-                }
-                else {
-                    return;
+                    exitProgram(); // Exit the program if requested
+                } else {
+                    return; // Do nothing if exit is not requested
                 }
             } else if (saveChoice == JOptionPane.CANCEL_OPTION) {
                 return; // Do nothing if cancel is chosen
             }
-            new Notepad();
-        }
-        else {
-            dispose();
+            new Notepad(); // Create a new Notepad instance
+        } else {
+            dispose(); // Dispose of the current Notepad instance if new Notepad is not created
         }
     }
 
+    // Opens a file selected by the user.
     private void openFile() {
+        // Display a file chooser dialog for selecting a file to open
         JFileChooser fileChooser = new JFileChooser();
         int option = fileChooser.showOpenDialog(this);
         if (option == JFileChooser.APPROVE_OPTION) {
@@ -522,63 +604,87 @@ class Notepad extends JFrame implements ActionListener {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 StringBuilder sb = new StringBuilder();
                 String line;
+                // Read the content of the selected file
                 while ((line = reader.readLine()) != null) {
                     sb.append(line).append("\n");
                 }
+                // Set the text pane content to the content of the file
                 textPane.setText(sb.toString());
             } catch (IOException e) {
+                // Display an error message if an IOException occurs during file reading
                 JOptionPane.showMessageDialog(this, "Error opening file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
-
-    private void addTag() {
-        String[] options = {"Low Priority", "Medium Priority", "High Priority"};
-        int choice = JOptionPane.showOptionDialog(this, "Choose a tag type:", "Add Tag", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
-        if (choice != JOptionPane.CLOSED_OPTION) {
-            currentTag = options[choice];
-            JOptionPane.showMessageDialog(this, "Tag added successfully: " + currentTag, "Tag Added", JOptionPane.INFORMATION_MESSAGE);
-        }
-    }
-
+/**
+     * Deletes the current tag.
+     * Resets the currentTag variable to an empty string.
+     * Displays a success message indicating that the tag has been deleted.
+ */
     private void deleteTag() {
+        // Reset the currentTag variable to an empty string
         currentTag = "";
+        // Display a success message indicating that the tag has been deleted
         JOptionPane.showMessageDialog(this, "Tag deleted successfully.", "Tag Deleted", JOptionPane.INFORMATION_MESSAGE);
     }
 
+/**
+     * Replaces the current tag with a new one.
+     * Checks if the currentTag is not null and not empty.
+     * If so, calls the addTag method to replace the current tag.
+     * If the currentTag is null or empty, displays a warning message indicating that a tag is required.
+ */
     private void replaceTag() {
         if (currentTag != null && !currentTag.isEmpty()) {
-            addTag(); // Call addTag method to replace the current tag
+            // If the currentTag is not null and not empty, call the addTag method to replace the current tag
+            addTag();
         } else {
+            // If the currentTag is null or empty, display a warning message indicating that a tag is required
             JOptionPane.showMessageDialog(this, "Please add a tag before replacing.", "Tag Required", JOptionPane.WARNING_MESSAGE);
         }
     }
 
+    // Filters files by the selected tag.
     private void filterByTag() {
+        // Array of options for tag selection
         String[] options = {"Low Priority", "Medium Priority", "High Priority"};
-        String selectedTag = (String) JOptionPane.showInputDialog(this, "Choose a tag to filter by:", "Filter by Tag", JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+        // Prompt the user to choose a tag from the options
+        String selectedTag = (String) JOptionPane.showInputDialog(
+            this, 
+            "Choose a tag to filter by:", 
+            "Filter by Tag", 
+            JOptionPane.QUESTION_MESSAGE, 
+            null, 
+            options, 
+            options[0]
+        );
+        
         if (selectedTag != null) {
-            // Filter files based on selected tag
+            // Filter files based on the selected tag
             List<String> filteredFiles = new ArrayList<>();
             for (Map.Entry<String, String> entry : filesWithTags.entrySet()) {
                 if (entry.getValue().equals(selectedTag)) {
                     filteredFiles.add(entry.getKey());
                 }
             }
+            
             // Display filtered files
             if (!filteredFiles.isEmpty()) {
+                // Build a message with the list of filtered files
                 StringBuilder message = new StringBuilder("Files with Tag '" + selectedTag + "':\n");
                 for (String file : filteredFiles) {
                     message.append(file).append("\n");
                 }
+                // Display the message with the list of filtered files
                 JOptionPane.showMessageDialog(this, message.toString(), "Filtered Files", JOptionPane.INFORMATION_MESSAGE);
             } else {
+                // Display a message indicating no files found with the selected tag
                 JOptionPane.showMessageDialog(this, "No files found with Tag '" + selectedTag + "'", "Filtered Files", JOptionPane.INFORMATION_MESSAGE);
             }
         }
     }
     
-
+    // Main Method 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Notepad());
     }
